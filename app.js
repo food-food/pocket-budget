@@ -281,7 +281,7 @@
       // Sidebar
       e('aside', { className: 'sidebar' },
         e('div', { className: 'brand' },
-          e('div', { className: 'brand-mark' }, e(Icon, { name: 'wallet', size: 20, sw: 2 })),
+          e('div', { className: 'brand-mark' }, e(Icon, { name: 'pocket', size: 20, sw: 2 })),
           e('span', { className: 'brand-name' }, 'Pocket')
         ),
 

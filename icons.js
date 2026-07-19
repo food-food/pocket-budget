@@ -45,6 +45,10 @@
       e('rect', { x: 3.5, y: 7.5, width: 17, height: 11.5, rx: 2.5 }),
       e('circle', { cx: 16.5, cy: 13.3, r: 1.1, fill: 'currentColor', stroke: 'none' })
     ),
+    pocket: () => e('g', null,
+      e('rect', { x: 3, y: 3, width: 18, height: 18, rx: 5, fill: 'currentColor', stroke: 'none' }),
+      e('path', { d: 'M9 7h3.8c1.8 0 3.2 1.4 3.2 3.1 0 1.8-1.4 3.1-3.2 3.1H10.5V17H9V7z M10.5 11.8h2.2c1 0 1.8-.7 1.8-1.7s-.8-1.7-1.8-1.7H10.5v3.4z', fill: 'white', stroke: 'none' })
+    ),
     arrowUp: () => e('path', { d: 'M12 19V6M6.5 11 12 5.5 17.5 11' }),
     arrowDown: () => e('path', { d: 'M12 5v13M6.5 13 12 18.5 17.5 13' }),
     spark: () => e('path', { d: 'M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18' }),

@@ -34,7 +34,7 @@
     return e('div', { className: 'auth-screen' },
       e('div', { className: 'auth-card' },
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 } },
-          e('div', { className: 'brand-mark' }, e(Icon, { name: 'wallet', size: 20, sw: 2 })),
+          e('div', { className: 'brand-mark' }, e(Icon, { name: 'pocket', size: 20, sw: 2 })),
           e('span', { className: 'brand-name' }, 'Pocket')
         ),
         done
@@ -115,7 +115,7 @@
     return e('div', { className: 'auth-screen' },
       e('div', { className: 'auth-card' },
         e('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 } },
-          e('div', { className: 'brand-mark' }, e(Icon, { name: 'wallet', size: 20, sw: 2 })),
+          e('div', { className: 'brand-mark' }, e(Icon, { name: 'pocket', size: 20, sw: 2 })),
           e('span', { className: 'brand-name' }, 'Pocket')
         ),
 
