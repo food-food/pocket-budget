@@ -121,8 +121,89 @@
     );
   }
 
+  // ---- budget detail sheet ----
+  function BudgetDetailSheet({ budget, allTx, onClose, onAddTx, onEditBudget, canWrite }) {
+    const { dayLabel, isoDate, parseISO } = window.Budget;
+    const [addingExpense, setAddingExpense] = React.useState(false);
+    const cat = CAT[budget.category] || {};
+    const spent = categoryBudgetSpent(budget, allTx);
+    const pct = budget.amount > 0 ? spent / budget.amount : 0;
+    const over = spent > budget.amount;
+    const remaining = budget.amount - spent;
+
+    // Transactions in this category within the budget period
+    const now = new Date();
+    const periodTx = allTx.filter(tx => {
+      if (tx.type !== 'expense' || tx.category !== budget.category) return false;
+      const d = parseISO(tx.date);
+      if (budget.period === 'month') return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      return d.getFullYear() === now.getFullYear();
+    }).sort((a, b) => b.date.localeCompare(a.date));
+
+    if (addingExpense) {
+      return e(window.AddSheet, {
+        defaultType: 'expense',
+        defaultCategory: budget.category,
+        onClose: () => setAddingExpense(false),
+        onAdd: (tx) => { onAddTx(tx); setAddingExpense(false); },
+      });
+    }
+
+    return e('div', { className: 'scrim', onMouseDown: ev => { if (ev.target === ev.currentTarget) onClose(); } },
+      e('div', { className: 'sheet' },
+        e('div', { className: 'sheet-head' },
+          e('h3', null, budget.name),
+          e('div', { style: { display: 'flex', gap: 6 } },
+            canWrite && e('button', { className: 'x-btn', onClick: onEditBudget, title: 'Edit budget', style: { color: 'var(--accent)' } }, e(Icon, { name: 'gear', size: 17 })),
+            e('button', { className: 'x-btn', onClick: onClose, 'aria-label': 'Close' }, e(Icon, { name: 'close', size: 17 }))
+          )
+        ),
+
+        budget.description && e('div', { style: { fontSize: 13.5, color: 'var(--ink-3)', fontWeight: 500, marginBottom: 14 } }, budget.description),
+
+        // Progress section
+        e('div', { style: { background: 'var(--card-2)', borderRadius: 14, padding: '16px 18px', marginBottom: 18 } },
+          e('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 } },
+            e('span', { className: 'tnum', style: { fontSize: 28, fontWeight: 760, letterSpacing: '-0.03em', color: over ? 'var(--bad)' : 'var(--ink)' } }, fmt(spent)),
+            e('span', { style: { fontSize: 14, color: 'var(--ink-3)', fontWeight: 560 } }, '/ ' + fmt(budget.amount, { cents: false })),
+          ),
+          e(ProgressBar, { pct, color: cat.color || 'var(--accent)', over }),
+          e('div', { style: { marginTop: 8, fontSize: 13, fontWeight: 580, color: over ? 'var(--bad)' : 'var(--ink-3)' } },
+            over
+              ? fmt(Math.abs(remaining)) + ' over budget'
+              : fmt(remaining) + ' remaining · ' + (budget.period === 'month' ? 'resets next month' : 'resets next year')
+          )
+        ),
+
+        // Add expense button
+        canWrite && e('button', {
+          className: 'btn btn-primary',
+          style: { width: '100%', padding: 13, marginBottom: 18 },
+          onClick: () => setAddingExpense(true),
+        }, e(Icon, { name: 'plus', size: 16 }), ' Add expense'),
+
+        // Recent transactions in this budget
+        e('div', { className: 'field-label' }, budget.period === 'month' ? 'This month' : 'This year'),
+        periodTx.length === 0
+          ? e('div', { style: { color: 'var(--ink-3)', fontSize: 14, fontWeight: 520, padding: '12px 0' } }, 'No expenses yet.')
+          : e('div', { style: { borderRadius: 13, overflow: 'hidden', border: '1px solid var(--hairline)' } },
+              periodTx.map((tx, i) =>
+                e('div', { key: tx.id, className: 'tx', style: { borderTop: i > 0 ? '1px solid var(--hairline)' : 'none', borderRadius: 0 } },
+                  e(Badge, { color: cat.color || 'var(--accent)', icon: cat.icon || 'flag' }),
+                  e('div', { style: { minWidth: 0 } },
+                    e('div', { className: 'nm' }, tx.note || cat.label),
+                    e('div', { className: 'sub' }, dayLabel(tx.date))
+                  ),
+                  e('span', { className: 'amt tnum', style: { color: 'var(--bad)' } }, '−' + fmt(tx.amount))
+                )
+              )
+            )
+      )
+    );
+  }
+
   // ---- single budget card ----
-  function BudgetCard({ budget, allTx, onEdit }) {
+  function BudgetCard({ budget, allTx, onClick }) {
     const cat = CAT[budget.category] || {};
     const spent = categoryBudgetSpent(budget, allTx);
     const pct = budget.amount > 0 ? spent / budget.amount : 0;
@@ -130,7 +211,7 @@
     const remaining = budget.amount - spent;
     const periodLabel = budget.period === 'month' ? 'this month' : 'this year';
 
-    return e('div', { className: 'card', style: { cursor: onEdit ? 'pointer' : 'default' }, onClick: onEdit ? () => onEdit(budget) : undefined },
+    return e('div', { className: 'card', style: { cursor: 'pointer' }, onClick },
       e('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 } },
         e(Badge, { color: cat.color || 'var(--accent)', icon: cat.icon || 'flag', size: 38, radius: 12 }),
         e('div', { style: { flex: 1, minWidth: 0 } },
@@ -138,7 +219,7 @@
           budget.description && e('div', { style: { fontSize: 12.5, color: 'var(--ink-3)', fontWeight: 500, marginBottom: 2 } }, budget.description),
           e('div', { style: { fontSize: 12, color: 'var(--ink-3)', fontWeight: 520 } }, cat.label, ' · ', budget.period === 'month' ? 'Monthly' : 'Yearly'),
         ),
-        onEdit && e('div', { style: { color: 'var(--ink-3)', flexShrink: 0 } }, e(Icon, { name: 'chevR', size: 16 })),
+        e('div', { style: { color: 'var(--ink-3)', flexShrink: 0 } }, e(Icon, { name: 'chevR', size: 16 })),
       ),
 
       e(ProgressBar, { pct, color: cat.color || 'var(--accent)', over }),
@@ -162,9 +243,10 @@
   }
 
   // ---- main budgets page ----
-  function Budgets({ allTx, settings, onSaveSettings, canWrite }) {
+  function Budgets({ allTx, settings, onSaveSettings, onAddTx, canWrite }) {
     const [sheetOpen, setSheetOpen] = React.useState(false);
-    const [editing, setEditing] = React.useState(null);
+    const [viewing, setViewing]     = React.useState(null); // budget being viewed
+    const [editing, setEditing]     = React.useState(null); // budget being edited
     const budgets = settings.categoryBudgets || [];
 
     const saveBudget = (b) => {
@@ -177,9 +259,8 @@
 
     const deleteBudget = (id) => {
       onSaveSettings({ ...settings, categoryBudgets: budgets.filter(x => x.id !== id) });
+      setViewing(null);
     };
-
-    const openEdit = canWrite ? (b) => setEditing(b) : null;
 
     return e('div', null,
       budgets.length === 0
@@ -207,19 +288,32 @@
               )
             ),
             budgets.map(b =>
-              e(BudgetCard, { key: b.id, budget: b, allTx, onEdit: openEdit })
+              e(BudgetCard, { key: b.id, budget: b, allTx, onClick: () => setViewing(b) })
             )
           ),
 
+      // New budget sheet
       sheetOpen && e(BudgetSheet, {
         onSave: saveBudget,
         onClose: () => setSheetOpen(false),
       }),
+
+      // Edit budget sheet
       editing && e(BudgetSheet, {
         existing: editing,
-        onSave: saveBudget,
+        onSave: (b) => { saveBudget(b); setViewing(b); },
         onDelete: deleteBudget,
         onClose: () => setEditing(null),
+      }),
+
+      // Budget detail sheet
+      viewing && e(BudgetDetailSheet, {
+        budget: viewing,
+        allTx,
+        canWrite,
+        onClose: () => setViewing(null),
+        onAddTx,
+        onEditBudget: () => { setEditing(viewing); setViewing(null); },
       })
     );
   }

@@ -411,7 +411,7 @@
           nav === 'overview'     && e(Overview,      { allTx, filtered, filter, range, balances, settings, onAdd: canWrite ? setAdd : null, onGoto: goto, onOpenReport: () => setReportOpen(true), accent }),
           nav === 'transactions' && e(Transactions,  { filtered, catFilter, setCatFilter, onDelete: canWrite ? delTx : null, onEdit: canWrite ? setEditing : null }),
           nav === 'savings'      && e(Savings,       { allTx, filtered, filter, settings, onAdd: canWrite ? setAdd : null, onOpenSettings: canWrite ? () => setSettingsOpen(true) : null }),
-          nav === 'budgets'      && e(Budgets,       { allTx, settings, onSaveSettings: canWrite ? saveSettings : null, canWrite })
+          nav === 'budgets'      && e(Budgets,       { allTx, settings, onSaveSettings: canWrite ? saveSettings : null, onAddTx: canWrite ? addTx : null, canWrite })
         )
       ),
 

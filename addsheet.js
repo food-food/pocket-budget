@@ -7,10 +7,10 @@
   const e = React.createElement;
 
   // existing: Transaction | null  — when set, sheet is in edit mode
-  function AddSheet({ onClose, onAdd, onEdit, defaultType = 'expense', existing = null }) {
+  function AddSheet({ onClose, onAdd, onEdit, defaultType = 'expense', defaultCategory = 'food', existing = null }) {
     const [type, setType] = React.useState(existing ? existing.type : defaultType);
     const [amount, setAmount] = React.useState(existing ? String(existing.amount) : '');
-    const [category, setCategory] = React.useState(existing?.category || 'food');
+    const [category, setCategory] = React.useState(existing?.category || defaultCategory);
     const [account, setAccount] = React.useState(existing?.account || 'apple');
     const [note, setNote] = React.useState(existing?.note || '');
     const [date, setDate] = React.useState(existing?.date || isoDate(new Date()));
