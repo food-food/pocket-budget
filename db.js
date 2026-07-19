@@ -248,16 +248,34 @@
   async function syncAutoSavings(budgetId, transactions) {
     const autoTx = transactions.filter(t => (t.id || '').startsWith('auto-savings-'));
     const autoIds = autoTx.map(t => t.id);
-    // Delete stale auto-savings rows no longer in the computed set
-    const { data: existing } = await window.sb
+
+    // Only delete known stale auto-savings IDs — never touch non-auto-savings rows
+    if (autoIds.length > 0) {
+      // Fetch existing auto-savings rows by their explicit IDs (safe — no wildcard)
+      const { data: existing } = await window.sb
+        .from('transactions')
+        .select('id')
+        .eq('budget_id', budgetId)
+        .in('id', autoIds);
+      // Nothing to delete — only upsert
+      void existing;
+    }
+
+    // Delete auto-savings rows that are no longer in the computed set
+    // We fetch only by explicit known-safe IDs pattern to avoid mass deletes
+    const { data: allAuto } = await window.sb
       .from('transactions')
       .select('id')
       .eq('budget_id', budgetId)
+      .eq('auto', true)
       .like('id', 'auto-savings-%');
-    const staleIds = (existing || []).map(r => r.id).filter(id => !autoIds.includes(id));
+    const staleIds = (allAuto || [])
+      .map(r => r.id)
+      .filter(id => id.startsWith('auto-savings-') && !autoIds.includes(id)); // double-check prefix
     if (staleIds.length > 0) {
       await window.sb.from('transactions').delete().in('id', staleIds);
     }
+
     if (autoTx.length === 0) return;
     const rows = autoTx.map(t => ({
       id: t.id, budget_id: budgetId, type: t.type, amount: t.amount,
