@@ -95,6 +95,7 @@ input, select { font-family: inherit; }
   display: flex;
   flex-direction: column;
   gap: 6px;
+  overflow-y: auto;
 }
 .brand {
   display: flex; align-items: center; gap: 11px;
