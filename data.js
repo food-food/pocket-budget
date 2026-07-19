@@ -113,6 +113,74 @@ function save(state) {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+// ---------- auto savings reconciliation ----------
+// For each completed past month, if the user has no manual savings entry for
+// that month, insert an auto-savings transaction equal to (income - expenses)
+// for that month. A "manual" savings entry is any savings tx whose id does NOT
+// start with 'auto-savings-'.
+function reconcileSavings(transactions) {
+  const today = new Date();
+  const thisYM = currentYM();
+
+  // Find the earliest transaction month to know how far back to look
+  const nonAutoTx = transactions.filter(t => !(t.id || '').startsWith('auto-savings-'));
+  if (nonAutoTx.length === 0) return { transactions, changed: false };
+
+  const allYMs = nonAutoTx.map(t => ymOf(t.date)).sort();
+  const firstYM = allYMs[0];
+
+  // Collect months that have a manual savings entry
+  const manualSavingsMonths = new Set(
+    nonAutoTx.filter(t => t.type === 'savings').map(t => ymOf(t.date))
+  );
+
+  // Net balance running total — keyed by YM
+  // Group income and expense (not savings) by month
+  const netByMonth = {};
+  nonAutoTx
+    .filter(t => t.type === 'income' || t.type === 'expense')
+    .forEach(t => {
+      const k = ymOf(t.date);
+      if (!netByMonth[k]) netByMonth[k] = 0;
+      netByMonth[k] += t.type === 'income' ? t.amount : -t.amount;
+    });
+
+  // Build cumulative balance per month so we can compute delta
+  const months = [];
+  for (const ym of monthsBetween(firstYM, thisYM)) months.push(ym);
+
+  let runningBalance = 0;
+  const autoMap = {};
+  for (const ym of months) {
+    const prevBalance = runningBalance;
+    runningBalance += netByMonth[ym] || 0;
+    if (ym >= thisYM) continue; // only past months
+    if (manualSavingsMonths.has(ym)) continue; // user overrode this month
+    const delta = runningBalance - prevBalance; // = netByMonth[ym]
+    if (delta > 0) {
+      autoMap[ym] = delta;
+    }
+  }
+
+  const keep = transactions.filter(t => !(t.id || '').startsWith('auto-savings-'));
+  const autoTx = Object.entries(autoMap).map(([ym, amount]) => ({
+    id: `auto-savings-${ym}`,
+    type: 'savings',
+    amount: Math.round(amount * 100) / 100,
+    account: 'apple',
+    note: 'Auto-saved',
+    date: `${ym}-28`, // use 28th to stay within any month
+    auto: true,
+  }));
+
+  const prev = transactions.filter(t => (t.id || '').startsWith('auto-savings-'));
+  const changed = prev.length !== autoTx.length ||
+    autoTx.some(na => { const old = prev.find(o => o.id === na.id); return !old || old.amount !== na.amount; });
+
+  const next = [...keep, ...autoTx].sort((a, b) => b.date.localeCompare(a.date));
+  return { transactions: next, changed };
+}
+
 // ---------- derived balances ----------
 function deriveBalances(transactions) {
   const b = { apple: 0, cash: 0 };
@@ -184,6 +252,6 @@ window.Budget = {
   CATEGORIES, CAT, ACCOUNTS, ACCT,
   fmt, MONTHS, MON_ABBR, isoDate, parseISO, dayLabel,
   monthRange, ytdRange, inRange, load, save, uid, sampleData,
-  ymOf, currentYM, defaultSettings, deriveBalances, reconcileAllowance,
+  ymOf, currentYM, defaultSettings, deriveBalances, reconcileAllowance, reconcileSavings,
   categoryBudgetSpent,
 };

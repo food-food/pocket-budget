@@ -147,12 +147,16 @@
         e('p', { className: 'card-title' }, 'Deposits'),
         deposits.map(tx =>
           e('div', { className: 'tx', key: tx.id },
-            e(Badge, { color: 'var(--accent)', icon: 'savings' }),
+            e(Badge, { color: tx.auto ? 'var(--ink-3)' : 'var(--accent)', icon: 'savings' }),
             e('div', { style: { minWidth: 0 } },
-              e('div', { className: 'nm' }, tx.note || 'Savings deposit'),
-              e('div', { className: 'sub' }, dayLabel(tx.date), ' ', e('span', { className: 'acct-chip' }, `from ${ACCT[tx.account].label}`))
+              e('div', { className: 'nm' },
+                tx.auto
+                  ? e('span', null, 'Auto-saved ', e('span', { style: { fontSize: 11, fontWeight: 600, padding: '2px 6px', borderRadius: 6, background: 'var(--card-2)', color: 'var(--ink-3)', marginLeft: 4 } }, 'auto'))
+                  : (tx.note || 'Savings deposit')
+              ),
+              e('div', { className: 'sub' }, dayLabel(tx.date), tx.auto ? ' · based on monthly balance change' : (' ' + e('span', { className: 'acct-chip' }, `from ${ACCT[tx.account].label}`)))
             ),
-            e('span', { className: 'amt tnum', style: { color: 'var(--accent)' } }, '+' + fmt(tx.amount))
+            e('span', { className: 'amt tnum', style: { color: tx.auto ? 'var(--ink-2)' : 'var(--accent)' } }, '+' + fmt(tx.amount))
           )
         )
       )

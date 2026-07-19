@@ -130,13 +130,15 @@
       const canW = budget.role !== 'viewer';
       if (canW) {
         const synced = await window.DB.syncAllowance(budget.id, txs, s);
-        setTransactions(synced);
+        const { reconcileSavings } = B;
+        const { transactions: withSavings, changed } = reconcileSavings(synced);
+        if (changed) await window.DB.syncAutoSavings(budget.id, withSavings);
+        setTransactions(withSavings);
       } else {
-        // Viewer: reconcile allowance in-memory so balance shows correctly
-        // (no DB write — just compute auto-allowance transactions client-side)
-        const { reconcileAllowance } = B;
+        const { reconcileAllowance, reconcileSavings } = B;
         const r = reconcileAllowance(txs, s);
-        setTransactions(r.transactions);
+        const { transactions: withSavings } = reconcileSavings(r.transactions);
+        setTransactions(withSavings);
       }
       setSettings(s);
     }

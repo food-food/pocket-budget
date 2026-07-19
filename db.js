@@ -245,6 +245,29 @@
     if (error) throw error;
   }
 
+  async function syncAutoSavings(budgetId, transactions) {
+    const autoTx = transactions.filter(t => (t.id || '').startsWith('auto-savings-'));
+    const autoIds = autoTx.map(t => t.id);
+    // Delete stale auto-savings rows no longer in the computed set
+    const { data: existing } = await window.sb
+      .from('transactions')
+      .select('id')
+      .eq('budget_id', budgetId)
+      .like('id', 'auto-savings-%');
+    const staleIds = (existing || []).map(r => r.id).filter(id => !autoIds.includes(id));
+    if (staleIds.length > 0) {
+      await window.sb.from('transactions').delete().in('id', staleIds);
+    }
+    if (autoTx.length === 0) return;
+    const rows = autoTx.map(t => ({
+      id: t.id, budget_id: budgetId, type: t.type, amount: t.amount,
+      account: t.account, note: t.note, date: t.date,
+      category: null, auto: true,
+    }));
+    const { error } = await window.sb.from('transactions').upsert(rows, { onConflict: 'id' });
+    if (error) throw error;
+  }
+
   async function leaveSharedBudget(budgetId) {
     const { data: { user } } = await window.sb.auth.getUser();
     if (!user) throw new Error('Not signed in');
@@ -258,7 +281,7 @@
 
   window.DB = {
     init, loadTransactions, addTx, editTx, deleteTx, importTxs,
-    syncAllowance, saveSettings, getShares, inviteByEmail, revokeShare, leaveSharedBudget,
+    syncAllowance, syncAutoSavings, saveSettings, getShares, inviteByEmail, revokeShare, leaveSharedBudget,
     getPendingInvites, acceptInvite, declineInvite,
   };
 })();
