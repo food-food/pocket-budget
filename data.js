@@ -114,38 +114,32 @@ function save(state) {
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 // ---------- auto savings reconciliation ----------
-// For each completed past month, if the user has no manual savings entry for
-// that month, insert an auto-savings transaction equal to (income - expenses)
-// for that month. A "manual" savings entry is any savings tx whose id does NOT
-// start with 'auto-savings-'.
+// savings for month M = cumulative balance at end of M - cumulative balance at end of M-1
+// where cumulative balance = sum of all (income - expense) up to that point.
+// Savings transactions themselves do NOT affect balance — they are just records of growth.
+// A manual savings entry (id not starting with 'auto-savings-') for a month overrides the auto one.
 function reconcileSavings(transactions) {
-  const today = new Date();
   const thisYM = currentYM();
 
-  // Find the earliest transaction month to know how far back to look
   const nonAutoTx = transactions.filter(t => !(t.id || '').startsWith('auto-savings-'));
-  if (nonAutoTx.length === 0) return { transactions, changed: false };
+  const incomeTx = nonAutoTx.filter(t => t.type === 'income' || t.type === 'expense');
+  if (incomeTx.length === 0) return { transactions, changed: false };
 
-  const allYMs = nonAutoTx.map(t => ymOf(t.date)).sort();
+  const allYMs = incomeTx.map(t => ymOf(t.date)).sort();
   const firstYM = allYMs[0];
 
-  // Collect months that have a manual savings entry
+  // Months that have a manual savings override
   const manualSavingsMonths = new Set(
     nonAutoTx.filter(t => t.type === 'savings').map(t => ymOf(t.date))
   );
 
-  // Net balance running total — keyed by YM
-  // Group income and expense (not savings) by month
+  // Cumulative balance at end of each month (income - expense only)
   const netByMonth = {};
-  nonAutoTx
-    .filter(t => t.type === 'income' || t.type === 'expense')
-    .forEach(t => {
-      const k = ymOf(t.date);
-      if (!netByMonth[k]) netByMonth[k] = 0;
-      netByMonth[k] += t.type === 'income' ? t.amount : -t.amount;
-    });
+  incomeTx.forEach(t => {
+    const k = ymOf(t.date);
+    netByMonth[k] = (netByMonth[k] || 0) + (t.type === 'income' ? t.amount : -t.amount);
+  });
 
-  // Build cumulative balance per month so we can compute delta
   const months = [];
   for (const ym of monthsBetween(firstYM, thisYM)) months.push(ym);
 
@@ -154,22 +148,20 @@ function reconcileSavings(transactions) {
   for (const ym of months) {
     const prevBalance = runningBalance;
     runningBalance += netByMonth[ym] || 0;
-    if (ym >= thisYM) continue; // only past months
+    if (ym >= thisYM) continue; // current month not yet complete
     if (manualSavingsMonths.has(ym)) continue; // user overrode this month
-    const delta = runningBalance - prevBalance; // = netByMonth[ym]
-    if (delta > 0) {
-      autoMap[ym] = delta;
-    }
+    const delta = runningBalance - prevBalance;
+    if (delta > 0) autoMap[ym] = Math.round(delta * 100) / 100;
   }
 
   const keep = transactions.filter(t => !(t.id || '').startsWith('auto-savings-'));
   const autoTx = Object.entries(autoMap).map(([ym, amount]) => ({
     id: `auto-savings-${ym}`,
     type: 'savings',
-    amount: Math.round(amount * 100) / 100,
+    amount,
     account: 'apple',
     note: 'Auto-saved',
-    date: `${ym}-28`, // use 28th to stay within any month
+    date: `${ym}-28`,
     auto: true,
   }));
 
@@ -177,16 +169,16 @@ function reconcileSavings(transactions) {
   const changed = prev.length !== autoTx.length ||
     autoTx.some(na => { const old = prev.find(o => o.id === na.id); return !old || old.amount !== na.amount; });
 
-  const next = [...keep, ...autoTx].sort((a, b) => b.date.localeCompare(a.date));
-  return { transactions: next, changed };
+  return { transactions: [...keep, ...autoTx].sort((a, b) => b.date.localeCompare(a.date)), changed };
 }
 
 // ---------- derived balances ----------
+// Savings transactions are NOT subtracted from balance — they are records of balance growth.
 function deriveBalances(transactions) {
   const b = { apple: 0, cash: 0 };
   transactions.forEach(t => {
     if (t.type === 'income') b[t.account] += t.amount;
-    else b[t.account] -= t.amount;
+    else if (t.type === 'expense') b[t.account] -= t.amount;
   });
   return b;
 }

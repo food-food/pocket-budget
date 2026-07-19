@@ -64,13 +64,27 @@
   }
 
   function savingsSeries(all) {
-    const deps = all.filter(t => t.type === 'savings').sort((a, b) => a.date.localeCompare(b.date));
-    if (!deps.length) return { points: [], total: 0 };
+    // Savings = running account balance (income - expense) over time, shown month by month.
+    // We use the auto-savings records (which store the month-end delta) to reconstruct
+    // the cumulative balance chart. Manual savings entries are also included.
+    const savingsTx = all.filter(t => t.type === 'savings').sort((a, b) => a.date.localeCompare(b.date));
+    if (!savingsTx.length) return { points: [], total: 0 };
+
+    // Group by month, keeping only the latest entry per month (manual overrides auto)
     const byMonth = {};
-    deps.forEach(t => { const d = parseISO(t.date); const k = `${d.getFullYear()}-${String(d.getMonth()).padStart(2,'0')}`; byMonth[k] = (byMonth[k] || 0) + t.amount; });
+    savingsTx.forEach(t => {
+      const k = t.date.slice(0, 7);
+      // manual entry wins over auto
+      if (!byMonth[k] || byMonth[k].auto) byMonth[k] = t;
+    });
+
     const keys = Object.keys(byMonth).sort();
     let cum = 0;
-    const points = keys.map(k => { cum += byMonth[k]; const [y, m] = k.split('-').map(Number); return { label: `${MON_ABBR[m]}`, value: cum }; });
+    const points = keys.map(k => {
+      cum += byMonth[k].amount;
+      const [, m] = k.split('-').map(Number);
+      return { label: MON_ABBR[m - 1], value: cum };
+    });
     if (points.length === 1) points.unshift({ label: '', value: 0 });
     return { points, total: cum };
   }
