@@ -261,16 +261,36 @@
         e(Icon, { name: budgetMenuOpen ? 'chevDown' : 'chevR', size: 16 })
       ),
       budgetMenuOpen && allBudgets.map(b =>
-        e('button', {
-          key: b.id,
-          className: 'nav-item' + (activeBudget?.id === b.id ? ' active' : ''),
-          style: { paddingLeft: 28, fontSize: 14 },
-          onClick: () => switchBudget(b),
-        },
-          e('span', { style: { flex: 1 } }, b.name),
-          e('span', { style: { fontSize: 11, color: b.role === 'owner' ? 'var(--accent)' : 'var(--ink-3)', fontWeight: 620 } },
-            b.role === 'owner' ? 'You' : b.role
-          )
+        e('div', { key: b.id, style: { display: 'flex', alignItems: 'center' } },
+          e('button', {
+            className: 'nav-item' + (activeBudget?.id === b.id ? ' active' : ''),
+            style: { paddingLeft: 28, fontSize: 14, flex: 1 },
+            onClick: () => switchBudget(b),
+          },
+            e('span', { style: { flex: 1 } }, b.name),
+            e('span', { style: { fontSize: 11, color: b.role === 'owner' ? 'var(--accent)' : 'var(--ink-3)', fontWeight: 620 } },
+              b.role === 'owner' ? 'You' : b.role
+            )
+          ),
+          b.role !== 'owner' && e('button', {
+            title: 'Leave this budget',
+            style: { padding: '6px 8px', color: 'var(--ink-3)', flexShrink: 0 },
+            onClick: async (ev) => {
+              ev.stopPropagation();
+              if (!confirm(`Leave "${b.name}"? You'll lose access unless re-invited.`)) return;
+              try {
+                await window.DB.leaveSharedBudget(b.id);
+                setAllBudgets(prev => prev.filter(x => x.id !== b.id));
+                if (activeBudget?.id === b.id) {
+                  const fallback = allBudgets.find(x => x.id !== b.id);
+                  if (fallback) switchBudget(fallback);
+                }
+                setBudgetMenuOpen(false);
+              } catch (err) {
+                alert(err.message);
+              }
+            },
+          }, e(Icon, { name: 'close', size: 13 }))
         )
       )
     );

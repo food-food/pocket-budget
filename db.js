@@ -245,9 +245,20 @@
     if (error) throw error;
   }
 
+  async function leaveSharedBudget(budgetId) {
+    const { data: { user } } = await window.sb.auth.getUser();
+    if (!user) throw new Error('Not signed in');
+    const { error } = await window.sb
+      .from('budget_shares')
+      .delete()
+      .eq('budget_id', budgetId)
+      .eq('invited_email', user.email.toLowerCase());
+    if (error) throw error;
+  }
+
   window.DB = {
     init, loadTransactions, addTx, editTx, deleteTx, importTxs,
-    syncAllowance, saveSettings, getShares, inviteByEmail, revokeShare,
+    syncAllowance, saveSettings, getShares, inviteByEmail, revokeShare, leaveSharedBudget,
     getPendingInvites, acceptInvite, declineInvite,
   };
 })();
