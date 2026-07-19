@@ -173,7 +173,8 @@ function reconcileSavings(transactions) {
 }
 
 // ---------- derived balances ----------
-// Savings transactions are NOT subtracted from balance — they are records of balance growth.
+// Savings transactions are informational records of balance growth — they do not
+// subtract from the spendable balance (which is income minus expenses).
 function deriveBalances(transactions) {
   const b = { apple: 0, cash: 0 };
   transactions.forEach(t => {
