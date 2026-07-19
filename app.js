@@ -6,13 +6,14 @@
   const { fmt, ACCOUNTS, isoDate, monthRange, ytdRange, parseISO, deriveBalances, defaultSettings } = B;
   const Icon = window.Icon, Badge = window.Badge, DateFilter = window.DateFilter, rangeLabel = window.rangeLabel;
   const { filterTx } = window.Selectors;
-  const { Overview, Transactions, Savings, AddSheet, SettingsSheet, ImportSheet, AuthScreen, SetNewPasswordScreen, SharePanel, AssistantPanel, ReportSheet, DeleteAccountSheet, NotificationsPanel } = window;
+  const { Overview, Transactions, Savings, Budgets, AddSheet, SettingsSheet, ImportSheet, AuthScreen, SetNewPasswordScreen, SharePanel, AssistantPanel, ReportSheet, DeleteAccountSheet, NotificationsPanel } = window;
   const e = React.createElement;
 
   const NAV = [
     { id: 'overview',     label: 'Overview',     icon: 'home'    },
     { id: 'transactions', label: 'Transactions', icon: 'list'    },
     { id: 'savings',      label: 'Savings',      icon: 'savings' },
+    { id: 'budgets',      label: 'Budgets',      icon: 'flag'    },
   ];
 
   // ---------- loading screen ----------
@@ -231,11 +232,12 @@
     const minYear   = React.useMemo(() => allTx.length ? parseISO(allTx[allTx.length - 1].date).getFullYear() : now.getFullYear(), [allTx]);
     const accent    = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#0A84FF';
 
-    const titles = { overview: 'Overview', transactions: 'Transactions', savings: 'Savings' };
+    const titles = { overview: 'Overview', transactions: 'Transactions', savings: 'Savings', budgets: 'Budgets' };
     const subs = {
       overview: 'Your money at a glance',
       transactions: `${filtered.length} ${filtered.length === 1 ? 'item' : 'items'} · ${rangeLabel(filter)}`,
       savings: 'Watch your total grow',
+      budgets: 'Track your spending limits',
     };
 
     // ---------- render gates ----------
@@ -408,7 +410,8 @@
 
           nav === 'overview'     && e(Overview,      { allTx, filtered, filter, range, balances, settings, onAdd: canWrite ? setAdd : null, onGoto: goto, onOpenReport: () => setReportOpen(true), accent }),
           nav === 'transactions' && e(Transactions,  { filtered, catFilter, setCatFilter, onDelete: canWrite ? delTx : null, onEdit: canWrite ? setEditing : null }),
-          nav === 'savings'      && e(Savings,       { allTx, filtered, filter, settings, onAdd: canWrite ? setAdd : null, onOpenSettings: canWrite ? () => setSettingsOpen(true) : null })
+          nav === 'savings'      && e(Savings,       { allTx, filtered, filter, settings, onAdd: canWrite ? setAdd : null, onOpenSettings: canWrite ? () => setSettingsOpen(true) : null }),
+          nav === 'budgets'      && e(Budgets,       { allTx, settings, onSaveSettings: canWrite ? saveSettings : null, canWrite })
         )
       ),
 
