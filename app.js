@@ -6,7 +6,7 @@
   const { fmt, ACCOUNTS, isoDate, monthRange, ytdRange, parseISO, deriveBalances, defaultSettings } = B;
   const Icon = window.Icon, Badge = window.Badge, DateFilter = window.DateFilter, rangeLabel = window.rangeLabel;
   const { filterTx } = window.Selectors;
-  const { Overview, Transactions, Savings, Budgets, AddSheet, SettingsSheet, ImportSheet, AuthScreen, SetNewPasswordScreen, SharePanel, AssistantPanel, ReportSheet, DeleteAccountSheet, NotificationsPanel } = window;
+  const { Overview, Transactions, Savings, Budgets, AddSheet, SettingsSheet, AuthScreen, SetNewPasswordScreen, SharePanel, AssistantPanel, ReportSheet, DeleteAccountSheet, NotificationsPanel } = window;
   const e = React.createElement;
 
   const NAV = [
@@ -50,7 +50,6 @@
     const [add, setAdd] = React.useState(null);
     const [editing, setEditing] = React.useState(null);
     const [settingsOpen, setSettingsOpen] = React.useState(false);
-    const [importOpen, setImportOpen] = React.useState(false);
     const [shareOpen, setShareOpen] = React.useState(false);
     const [catFilter, setCatFilter] = React.useState('all');
     const [budgetMenuOpen, setBudgetMenuOpen] = React.useState(false);
@@ -334,9 +333,6 @@
         e('button', { className: 'nav-item', onClick: () => setSettingsOpen(true) },
           e(Icon, { name: 'gear', size: 21 }), ' Settings'
         ),
-        canWrite && e('button', { className: 'nav-item', onClick: () => setImportOpen(true) },
-          e(Icon, { name: 'arrowDown', size: 21 }), ' Import Apple Cash'
-        ),
         isOwner && e('button', { className: 'nav-item', onClick: () => setShareOpen(true) },
           e(Icon, { name: 'spark', size: 21 }), ' Share budget'
         ),
@@ -434,7 +430,6 @@
       add        && e(AddSheet,     { defaultType: add, onClose: () => setAdd(null), onAdd: addTx }),
       editing    && e(AddSheet,     { existing: editing, onClose: () => setEditing(null), onEdit: editTx }),
       settingsOpen && e(SettingsSheet, { settings, onClose: () => setSettingsOpen(false), onSave: canWrite ? saveSettings : null, onSignOut: signOut, onDeleteAccount: () => { setSettingsOpen(false); setDeleteAccountOpen(true); } }),
-      importOpen && canWrite && e(ImportSheet, { onClose: () => setImportOpen(false), onImport: importTxs, existingIds: new Set(allTx.map(t => t.id)) }),
       shareOpen  && isOwner  && e(SharePanel,  { budgetId: activeBudget.id, budgetName: activeBudget.name, onClose: () => setShareOpen(false) }),
       assistantOpen && canWrite && e(AssistantPanel, { onClose: () => setAssistantOpen(false), onImport: importTxs }),
       reportOpen && e(ReportSheet, { allTx, settings, onClose: () => setReportOpen(false) }),
