@@ -381,7 +381,6 @@
             e('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
               e('div', { style: { display: 'flex', gap: 4 } },
                 e('button', { className: 'settings-mobile x-btn', onClick: () => setSettingsOpen(true), 'aria-label': 'Settings' }, e(Icon, { name: 'gear', size: 18 })),
-                canWrite && e('button', { className: 'settings-mobile x-btn', onClick: () => setAssistantOpen(true), 'aria-label': 'AI Assistant', style: { fontSize: 16 } }, '✦'),
                 e('button', {
                   className: 'settings-mobile x-btn',
                   onClick: () => setNotifOpen(true),
